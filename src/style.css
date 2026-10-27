@@ -1,0 +1,390 @@
+:root {
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  color: #172033;
+  background: #f4f5f8;
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  --brand: #bd452e;
+  --ink: #202b3c;
+  --line: #e4e6eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  padding: 0.78rem 1rem;
+  border: 0;
+  border-radius: 0.65rem;
+  color: #fff;
+  background: #bd452e;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 3px solid #d88a54;
+  outline-offset: 2px;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid #d9dce3;
+  border-radius: 0.6rem;
+  color: #172033;
+  background: #fff;
+  font-size: 1rem;
+}
+
+label {
+  display: grid;
+  gap: 0.45rem;
+  color: #555d6b;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.auth-shell,
+.panel {
+  padding: 1.5rem;
+  border: 1px solid #e4e6eb;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 0.7rem 2rem #1720330b;
+}
+
+.auth-shell {
+  width: min(28rem, calc(100% - 2rem));
+  margin: 8vh auto;
+}
+.auth-shell h1,
+.topbar h1 {
+  margin: 0.25rem 0;
+  font-size: 2rem;
+  letter-spacing: -0.04em;
+}
+.auth-shell > p {
+  color: #687080;
+  line-height: 1.55;
+}
+.auth-shell form,
+.panel form {
+  display: grid;
+  gap: 0.9rem;
+}
+.auth-shell form {
+  margin-top: 1.5rem;
+}
+.text-button {
+  padding: 0.5rem 0;
+  color: #bd452e;
+  background: transparent;
+}
+.eyebrow {
+  color: #bd452e;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.17em;
+}
+
+.dashboard {
+  width: min(78rem, calc(100% - 2rem));
+  margin: 2.5rem auto;
+  display: grid;
+  gap: 1.25rem;
+}
+.topbar,
+.topbar-user,
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.topbar-user {
+  color: #606879;
+}
+.secondary {
+  color: #27364d;
+  background: #edf0f5;
+}
+.dashboard-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid #e4e6eb;
+  border-radius: 0.9rem;
+  background: white;
+}
+.dashboard-nav .nav-active {
+  background: #27364d;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.85rem;
+}
+.stats article {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid #e4e6eb;
+  border-radius: 0.9rem;
+  background: white;
+}
+.stats span {
+  color: #6e7583;
+  font-size: 0.85rem;
+}
+.stats strong {
+  font-size: 1.7rem;
+}
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+.panel h2 {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+}
+.panel p {
+  color: #687080;
+  line-height: 1.5;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.scanner-panel video {
+  display: block;
+  width: 100%;
+  max-height: 18rem;
+  margin: 1rem 0;
+  border-radius: 0.8rem;
+  background: #141b28;
+}
+.event-list {
+  display: grid;
+  gap: 0.75rem;
+}
+.event-card {
+  padding: 1rem;
+  border: 1px solid #e8e9ee;
+  border-radius: 0.8rem;
+}
+.event-card h3 {
+  margin: 0;
+}
+.event-card p {
+  margin: 0.4rem 0;
+}
+.event-cover {
+  display: block;
+  width: calc(100% + 2rem);
+  height: 12rem;
+  margin: -1rem -1rem 1rem;
+  object-fit: cover;
+  background: #e8ddd0;
+}
+.cover-preview {
+  display: block;
+  width: 100%;
+  max-height: 16rem;
+  border-radius: 0.6rem;
+  object-fit: cover;
+  background: #e8ddd0;
+}
+.event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.event-actions button {
+  min-height: 44px;
+}
+.sales-filters {
+  max-width: 42rem;
+  margin: 1rem 0;
+}
+.sales-chart {
+  min-height: 10rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin: 1rem 0 1.5rem;
+  padding: 1rem;
+  border: 1px solid #e8e9ee;
+  border-radius: 0.8rem;
+  background: #fbfbfc;
+}
+.sales-bar {
+  min-width: 3.5rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  color: #5b6270;
+  font-size: 0.75rem;
+}
+.sales-bar-track {
+  width: 2rem;
+  height: 6rem;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  border-radius: 0.35rem;
+  background: #eceff3;
+}
+.sales-bar-track span {
+  display: block;
+  width: 100%;
+  border-radius: 0.35rem;
+  background: #bd452e;
+}
+.sales-bar strong {
+  color: #202b3c;
+}
+.panel label small {
+  color: #717989;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.hint {
+  margin-top: -0.35rem;
+  font-size: 0.88rem;
+}
+.event-status {
+  display: inline-block;
+  margin-top: 0.2rem;
+  color: #8a5a13;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.event-status-live {
+  color: #237448;
+}
+.inventory {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.8rem 0;
+}
+.inventory span {
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.5rem;
+  color: #485164;
+  background: #f3f5f8;
+  font-size: 0.82rem;
+}
+.inventory .inventory-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.inventory-edit {
+  padding: 0.25rem 0.45rem;
+  color: #27364d;
+  background: #e4e8f0;
+  font-size: 0.75rem;
+}
+.status {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-radius: 0.7rem;
+  color: #285940;
+  background: #e8f5ed;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+th,
+td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #eceef2;
+  vertical-align: top;
+}
+th {
+  color: #6e7583;
+  font-size: 0.78rem;
+}
+td small {
+  display: block;
+  margin-top: 0.25rem;
+  color: #818895;
+}
+
+@media (max-width: 720px) {
+  .dashboard {
+    width: min(100% - 1rem, 78rem);
+    margin: 1rem auto;
+  }
+  .auth-shell,
+  .panel {
+    padding: 1rem;
+  }
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .topbar {
+    align-items: flex-start;
+  }
+  .topbar-user {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  .dashboard-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .dashboard-nav button {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .section-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  th,
+  td {
+    padding: 0.6rem;
+  }
+}
