@@ -32,6 +32,42 @@ button {
   background: #bd452e;
   font-weight: 700;
   cursor: pointer;
+  transition: background-color 120ms ease, filter 120ms ease, transform 100ms ease;
+  touch-action: manipulation;
+}
+
+@media (hover: hover) {
+  button:not(:disabled):hover {
+    filter: brightness(0.93);
+  }
+}
+button:not(:disabled):active {
+  transform: translateY(1px) scale(0.98);
+  filter: brightness(0.85);
+}
+button[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.85;
+}
+button[aria-busy="true"]::before {
+  content: "";
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-right: 0.5em;
+  vertical-align: -0.1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: button-spin 700ms linear infinite;
+}
+@keyframes button-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+  button:not(:disabled):active { transform: none; }
+  button[aria-busy="true"]::before { animation: none; }
 }
 
 button:disabled {
@@ -313,6 +349,28 @@ label {
   color: #27364d;
   background: #e4e8f0;
   font-size: 0.75rem;
+}
+.ticket-type-form {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: #fafbfc;
+}
+.ticket-type-form h4 {
+  margin: 0;
+}
+.ticket-type-form fieldset {
+  display: grid;
+  gap: 0.9rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.ticket-type-form .form-error {
+  margin: 0;
+  color: #a12f20;
 }
 .status {
   margin: 0;

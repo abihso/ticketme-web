@@ -1,4 +1,5 @@
 import { coverImageType } from "./cover-image";
+import { TicketTypeForm, type TicketTypeValues } from "./ticket-type-form";
 import { BrowserQRCodeReader } from "@zxing/browser";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -174,7 +175,7 @@ function AccountAction() {
             />
           </label>
         ) : null}
-        <button disabled={busy || !token}>
+        <button disabled={busy || !token} aria-busy={busy}>
           {busy
             ? "Please wait…"
             : isReset
@@ -200,6 +201,10 @@ function Dashboard() {
   const [ownerPassword, setOwnerPassword] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [ticketEditor, setTicketEditor] = useState<{ eventId: string; typeId?: string } | null>(null);
+  const [ticketSaving, setTicketSaving] = useState(false);
+  const [pendingActions, setPendingActions] = useState<Record<string, boolean>>({});
+  const pendingActionKeys = useRef(new Set<string>());
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState("");
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -215,6 +220,31 @@ function Dashboard() {
   const [scanning, setScanning] = useState(false);
   const [page, setPage] = useState<Page>("overview");
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  async function runAction(key: string, action: () => Promise<void>) {
+    if (pendingActionKeys.current.has(key)) return;
+    pendingActionKeys.current.add(key);
+    setPendingActions((current) => ({ ...current, [key]: true }));
+    setMessage("");
+    try {
+      await action();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "The action failed. Please try again.");
+    } finally {
+      pendingActionKeys.current.delete(key);
+      setPendingActions((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+    }
+  }
+
+  useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(""), 5000);
+    return () => window.clearTimeout(timer);
+  }, [message]);
 
   useEffect(() => {
     if (!coverImageFile) {
@@ -284,6 +314,7 @@ function Dashboard() {
     link.download = `northride-sales-${salesFrom || "all"}-${salesTo || "all"}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+    setMessage("CSV download started.");
   }
 
   const refresh = useCallback(async (authToken: string) => {
@@ -540,6 +571,7 @@ function Dashboard() {
         body: JSON.stringify({ published: !item.published }),
       });
       await refresh(token);
+      setMessage(item.published ? "Event unpublished." : "Event published.");
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not update event",
@@ -590,92 +622,31 @@ function Dashboard() {
     }
   }
 
-  async function addTicketType(event: EventItem) {
-    const name = window.prompt("Ticket type name");
-    if (!name?.trim()) return;
-    const price = Number(
-      window.prompt("Ticket price in major currency units", "0"),
-    );
-    const quantity = Number(window.prompt("Ticket quantity", "100"));
-    if (
-      !Number.isFinite(price) ||
-      price < 0 ||
-      !Number.isInteger(quantity) ||
-      quantity < 1
-    ) {
-      setMessage("Enter a valid ticket price and whole-number quantity.");
-      return;
-    }
+  async function saveTicketType(event: EventItem, values: TicketTypeValues) {
+    if (!ticketEditor || ticketSaving) return;
+    setTicketSaving(true);
     try {
-      await request(`/api/admin/events/${event.id}`, token, {
-        method: "PUT",
-        body: JSON.stringify({
-          ticketTypes: [
-            {
-              name: name.trim(),
-              priceMinor: Math.round(price * 100),
-              currency: event.ticketTypes[0]?.currency ?? "NGN",
-              quantity,
-            },
-          ],
-        }),
-      });
-      await refresh(token);
-      setMessage("Ticket type added.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Could not add ticket type",
-      );
-    }
-  }
-
-  async function editTicketType(type: EventItem["ticketTypes"][number]) {
-    const name = window.prompt("Ticket type name", type.name);
-    if (!name?.trim()) return;
-    const currency = window
-      .prompt("Currency code", type.currency)
-      ?.trim()
-      .toUpperCase();
-    if (!currency || !/^[A-Z]{3}$/.test(currency)) {
-      setMessage("Enter a valid three-letter currency code.");
-      return;
-    }
-    const price = Number(
-      window.prompt(
-        "Ticket price in major currency units",
-        (type.priceMinor / 100).toFixed(2),
-      ),
-    );
-    const quantity = Number(
-      window.prompt("Total ticket capacity", String(type.quantity)),
-    );
-    if (
-      !Number.isFinite(price) ||
-      price < 0 ||
-      !Number.isInteger(quantity) ||
-      quantity < type.sold + type.reserved
-    ) {
-      setMessage(
-        `Capacity must be a whole number at least ${type.sold + type.reserved}.`,
-      );
-      return;
-    }
-    try {
-      await request(`/api/admin/ticket-types/${type.id}`, token, {
-        method: "PATCH",
-        body: JSON.stringify({
-          name: name.trim(),
-          currency,
-          priceMinor: Math.round(price * 100),
-          quantity,
-        }),
-      });
-      await refresh(token);
-      setMessage("Ticket type updated.");
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Could not update ticket type",
-      );
+      if (ticketEditor.typeId) {
+        const updated = await request<EventItem["ticketTypes"][number]>(
+          `/api/admin/ticket-types/${ticketEditor.typeId}`, token,
+          { method: "PATCH", body: JSON.stringify(values) },
+        );
+        setEvents((current) => current.map((item) => item.id === event.id
+          ? { ...item, ticketTypes: item.ticketTypes.map((type) => type.id === updated.id ? updated : type) }
+          : item));
+      } else {
+        const updated = await request<EventItem>(`/api/admin/events/${event.id}`, token, {
+          method: "PUT", body: JSON.stringify({ ticketTypes: [values] }),
+        });
+        // This endpoint returns the newly added types, so retain existing inventory.
+        setEvents((current) => current.map((item) => item.id === event.id
+          ? { ...item, ticketTypes: [...item.ticketTypes, ...updated.ticketTypes] }
+          : item));
+      }
+      setMessage(ticketEditor.typeId ? "Ticket type updated." : "Ticket type added.");
+      setTicketEditor(null);
+    } finally {
+      setTicketSaving(false);
     }
   }
 
@@ -705,6 +676,7 @@ function Dashboard() {
 
   function signOut() {
     sessionStorage.removeItem("admin-session");
+    setMessage("");
     setToken("");
     setUser(null);
     setScanning(false);
@@ -742,7 +714,7 @@ function Dashboard() {
               required
             />
           </label>
-          <button disabled={busy}>{busy ? "Please wait…" : "Sign in"}</button>
+          <button disabled={busy} aria-busy={busy}>{busy ? "Signing in…" : "Sign in"}</button>
         </form>
         <p role="status">{message}</p>
       </main>
@@ -806,6 +778,8 @@ function Dashboard() {
             key={id}
             className={page === id ? "nav-active" : "secondary"}
             onClick={() => {
+              setMessage("");
+              setTicketEditor(null);
               setPage(id);
               if (id !== "scan") setScanning(false);
             }}
@@ -909,7 +883,7 @@ function Dashboard() {
                   Expiry (optional)
                   <input name="expiresAt" type="datetime-local" />
                 </label>
-                <button disabled={busy}>Create promo code</button>
+            <button disabled={busy} aria-busy={busy}>{busy ? "Creating…" : "Create promo code"}</button>
               </form>
             </>
           ) : (
@@ -956,15 +930,19 @@ function Dashboard() {
                 {refund.status === "PENDING" ? (
                   <>
                     <button
-                      onClick={() => void updateRefund(refund, "APPROVED")}
+                      disabled={pendingActions[`refund:${refund.id}:APPROVED`] || pendingActions[`refund:${refund.id}:REJECTED`]}
+                      aria-busy={Boolean(pendingActions[`refund:${refund.id}:APPROVED`])}
+                      onClick={() => void runAction(`refund:${refund.id}:APPROVED`, () => updateRefund(refund, "APPROVED"))}
                     >
-                      Approve for manual processing
+                      {pendingActions[`refund:${refund.id}:APPROVED`] ? "Approving…" : "Approve for manual processing"}
                     </button>
                     <button
                       className="secondary"
-                      onClick={() => void updateRefund(refund, "REJECTED")}
+                      disabled={pendingActions[`refund:${refund.id}:APPROVED`] || pendingActions[`refund:${refund.id}:REJECTED`]}
+                      aria-busy={Boolean(pendingActions[`refund:${refund.id}:REJECTED`])}
+                      onClick={() => void runAction(`refund:${refund.id}:REJECTED`, () => updateRefund(refund, "REJECTED"))}
                     >
-                      Reject
+                      {pendingActions[`refund:${refund.id}:REJECTED`] ? "Rejecting…" : "Reject"}
                     </button>
                   </>
                 ) : refund.status === "APPROVED" ? (
@@ -1084,7 +1062,7 @@ function Dashboard() {
                 />
               </label>
             </div>
-            <button disabled={busy}>Save event draft</button>
+            <button disabled={busy} aria-busy={busy}>{busy ? "Saving event…" : "Save event draft"}</button>
           </form>
         </section>
       ) : null}
@@ -1099,6 +1077,8 @@ function Dashboard() {
             <button
               className={scanAction === "CHECK_IN" ? "" : "secondary"}
               type="button"
+              disabled={pendingActions["check-in"]}
+              aria-pressed={scanAction === "CHECK_IN"}
               onClick={() => setScanAction("CHECK_IN")}
             >
               Check in
@@ -1106,6 +1086,8 @@ function Dashboard() {
             <button
               className={scanAction === "CHECK_OUT" ? "" : "secondary"}
               type="button"
+              disabled={pendingActions["check-in"]}
+              aria-pressed={scanAction === "CHECK_OUT"}
               onClick={() => setScanAction("CHECK_OUT")}
             >
               Check out
@@ -1121,7 +1103,10 @@ function Dashboard() {
           >
             {scanning ? "Stop scanning" : "Tap to scan"}
           </button>
-          <form onSubmit={(event) => void checkIn(event)}>
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            void runAction("check-in", () => checkIn(event));
+          }}>
             <label>
               Ticket token
               <input
@@ -1130,8 +1115,8 @@ function Dashboard() {
                 required
               />
             </label>
-            <button disabled={!ticketToken}>
-              {scanAction === "CHECK_IN"
+            <button disabled={!ticketToken || pendingActions["check-in"]} aria-busy={Boolean(pendingActions["check-in"])}>
+              {pendingActions["check-in"] ? "Validating…" : scanAction === "CHECK_IN"
                 ? "Validate and check in"
                 : "Validate and check out"}
             </button>
@@ -1142,8 +1127,11 @@ function Dashboard() {
         <section className="panel">
           <div className="section-heading">
             <h2>Events and inventory</h2>
-            <button className="secondary" onClick={() => void refresh(token)}>
-              Refresh
+            <button className="secondary" disabled={pendingActions.refresh} aria-busy={Boolean(pendingActions.refresh)} onClick={() => void runAction("refresh", async () => {
+              await refresh(token);
+              setMessage("Events refreshed.");
+            })}>
+              {pendingActions.refresh ? "Refreshing…" : "Refresh"}
             </button>
           </div>
           <p className="hint">
@@ -1192,15 +1180,19 @@ function Dashboard() {
                     <div className="event-actions">
                       <button
                         className={event.published ? "secondary" : ""}
-                        onClick={() => void setPublished(event)}
+                        disabled={pendingActions[`publish:${event.id}`] || pendingActions[`duplicate:${event.id}`]}
+                        aria-busy={Boolean(pendingActions[`publish:${event.id}`])}
+                        onClick={() => void runAction(`publish:${event.id}`, () => setPublished(event))}
                       >
-                        {event.published ? "Unpublish" : "Publish"}
+                        {pendingActions[`publish:${event.id}`] ? "Updating…" : event.published ? "Unpublish" : "Publish"}
                       </button>
                       <button
                         className="secondary"
-                        onClick={() => void duplicateEvent(event)}
+                        disabled={pendingActions[`publish:${event.id}`] || pendingActions[`duplicate:${event.id}`]}
+                        aria-busy={Boolean(pendingActions[`duplicate:${event.id}`])}
+                        onClick={() => void runAction(`duplicate:${event.id}`, () => duplicateEvent(event))}
                       >
-                        Duplicate
+                        {pendingActions[`duplicate:${event.id}`] ? "Duplicating…" : "Duplicate"}
                       </button>
                     </div>
                   ) : null}
@@ -1213,7 +1205,9 @@ function Dashboard() {
                       {type.reserved} reserved / {type.quantity}
                       <button
                         className="inventory-edit"
-                        onClick={() => void editTicketType(type)}
+                        disabled={ticketSaving}
+                        aria-expanded={ticketEditor?.eventId === event.id && ticketEditor.typeId === type.id}
+                        onClick={() => setTicketEditor({ eventId: event.id, typeId: type.id })}
                       >
                         Edit
                       </button>
@@ -1222,10 +1216,26 @@ function Dashboard() {
                 </div>
                 <button
                   className="text-button"
-                  onClick={() => void addTicketType(event)}
+                  disabled={ticketSaving}
+                  aria-expanded={ticketEditor?.eventId === event.id && !ticketEditor.typeId}
+                  onClick={() => setTicketEditor({ eventId: event.id })}
                 >
                   Add ticket type
                 </button>
+                {ticketEditor?.eventId === event.id ? (() => {
+                  const type = event.ticketTypes.find((item) => item.id === ticketEditor.typeId);
+                  return (
+                    <TicketTypeForm
+                      key={`${event.id}-${ticketEditor.typeId ?? "new"}`}
+                      initial={type ?? { name: "", currency: event.ticketTypes[0]?.currency ?? "GHS", priceMinor: 0, quantity: 100 }}
+                      minimumCapacity={Math.max(1, (type?.sold ?? 0) + (type?.reserved ?? 0))}
+                      editing={Boolean(type)}
+                      saving={ticketSaving}
+                      onSave={(values) => saveTicketType(event, values)}
+                      onCancel={() => setTicketEditor(null)}
+                    />
+                  );
+                })() : null}
               </article>
             ))}
           </div>
@@ -1270,7 +1280,7 @@ function Dashboard() {
                 autoComplete="new-password"
               />
             </label>
-            <button disabled={busy}>
+            <button disabled={busy} aria-busy={busy}>
               {busy ? "Creating account…" : "Register event owner"}
             </button>
           </form>
