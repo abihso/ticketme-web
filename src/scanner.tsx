@@ -1,3 +1,4 @@
+import { coverImageType } from "./cover-image";
 import { BrowserQRCodeReader } from "@zxing/browser";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -393,12 +394,12 @@ function Dashboard() {
     try {
       let coverImageKey: string | null = null;
       if (coverImageFile) {
-        const contentType = coverImageFile.type;
+        const contentType = coverImageType(coverImageFile.type, coverImageFile.name);
         if (!["image/jpeg", "image/png", "image/webp"].includes(contentType)) {
-          throw new Error("Choose a JPEG, PNG, or WebP image.");
+          throw new Error("Choose a JPG/JPEG, PNG, or WebP image.");
         }
-        if (coverImageFile.size < 1 || coverImageFile.size > 5 * 1024 * 1024) {
-          throw new Error("Cover image must be smaller than 5 MB.");
+        if (coverImageFile.size < 1 || coverImageFile.size > 20 * 1024 * 1024) {
+          throw new Error("Cover image must be 20 MB or smaller.");
         }
         const uploaded = await request<{ key: string }>("/api/admin/event-covers/content", token, {
           method: "POST",
@@ -996,12 +997,12 @@ function Dashboard() {
               <input
                 name="coverImageFile"
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/jpg,image/png,image/webp"
                 onChange={(event) =>
                   setCoverImageFile(event.target.files?.[0] ?? null)
                 }
               />
-              <small>JPEG, PNG, or WebP · maximum 5 MB</small>
+              <small>JPG/JPEG, PNG, or WebP · maximum 20 MB</small>
             </label>
             {coverImagePreview ? (
               <img
