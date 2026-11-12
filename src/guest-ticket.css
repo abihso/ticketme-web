@@ -1,0 +1,31 @@
+.guest-ticket-page {
+  min-height: 100svh;
+  padding: 24px 16px;
+  color: #191c26;
+  background: #f6f2ec;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+.guest-ticket-card {
+  width: 100%;
+  max-width: 480px;
+  margin: 24px auto;
+  padding: 28px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #e8e2d9;
+  border-radius: 20px;
+}
+.guest-ticket-card h1 { font-size: 28px; line-height: 1.2; }
+.guest-ticket-card h2 { font-size: 20px; }
+.guest-ticket-card p, .guest-ticket-card h2 { overflow-wrap: anywhere; }
+.guest-ticket-brand { color: #8d3a2b; font-size: 12px; letter-spacing: 2px; font-weight: 700; }
+.guest-ticket-muted { color: #656a75; }
+.guest-ticket-status { padding: 12px; border-radius: 10px; background: #f5eee7; }
+.guest-ticket-error { color: #9d2c20; }
+.guest-ticket-qr { display: block; max-width: 100%; height: auto; margin: 16px auto; }
+.guest-ticket-card details { margin: 20px 0; }
+.guest-ticket-card summary { cursor: pointer; }
+.guest-ticket-code { font-family: monospace; font-size: 12px; user-select: all; }
+.guest-ticket-card button { width: 100%; margin-top: 12px; background: #202b3c; }
+.guest-ticket-card button:disabled { opacity: .5; cursor: wait; }
