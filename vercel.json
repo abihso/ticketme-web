@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/guest-ticket", "destination": "/index.html" },
+    { "source": "/guest-ticket/", "destination": "/index.html" },
+    { "source": "/account/:path*", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/guest-ticket/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    }
+  ]
+}

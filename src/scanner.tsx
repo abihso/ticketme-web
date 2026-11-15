@@ -3,7 +3,7 @@ import { TicketTypeForm, type TicketTypeValues } from "./ticket-type-form";
 import { BrowserQRCodeReader } from "@zxing/browser";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
+const API_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 type AdminUser = { id: string; name: string; email: string; role: string };
 type EventItem = {
   id: string;

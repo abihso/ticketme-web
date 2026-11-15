@@ -17,14 +17,37 @@ assigned guest token. Set `VITE_API_URL` to the backend origin in `web/.env`.
 
 1. Set `VITE_API_URL` to your public HTTPS backend origin before building.
 2. Run `npm run build` and deploy the generated `dist/` directory.
-3. Configure the hosting service to serve `index.html` for `/guest-ticket`
-   (a SPA rewrite), so email links work when opened directly or refreshed.
+3. For Vercel, the included `vercel.json` serves `index.html` for `/guest-ticket`
+   and `/guest-ticket/`, so email links work when opened directly or refreshed.
+   It also handles the existing `/account/*` email-verification and password-reset
+   routes. Keep this file in the Vercel project root (the `web/` directory if
+   deploying this whole workspace). Other hosts need equivalent SPA rewrites.
 4. Set `WEB_APP_URL` on the backend to your public HTTPS website origin, for
    example `https://tickets.example.com`. New ticket emails use this website's
    `/guest-ticket#token=...` route. `PUBLIC_API_URL` remains the backend origin.
 5. Include the website origin in the backend's comma-separated `CORS_ORIGINS`.
 
 The domain can be configured at deployment time; no production URL is hardcoded.
+
+### Ticketme production deployment
+
+The public ticket URL for this deployment is
+`https://ticketme-web.vercel.app/guest-ticket#token=YOUR_GUEST_TICKET_TOKEN`.
+The email service supplies the real token automatically. Opening `/guest-ticket`
+without a token shows instructions to use the complete email link.
+
+- Vercel environment: `VITE_API_URL=https://ticketme-iacj.onrender.com`.
+- Backend environment: `WEB_APP_URL=https://ticketme-web.vercel.app`.
+- Backend `CORS_ORIGINS`: include `https://ticketme-web.vercel.app`, preserving
+  any other allowed origins.
+- Backend email delivery: configure `BREVO_API_KEY` and `BREVO_FROM_EMAIL`
+  with a verified sender.
+
+Push this directory, including `vercel.json`, to the repository connected to
+Vercel, then redeploy. Environment settings on Render/Vercel must be updated
+separately: local `.env` files are ignored by Git. Restart/redeploy the backend
+after changing its settings, then resend the guest ticket to generate a new
+public link. Emails already sent with a local network URL do not change.
 
 ## Local email testing
 
