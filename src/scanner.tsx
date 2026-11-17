@@ -1,4 +1,5 @@
 import { coverImageType } from "./cover-image";
+import { hasEventEnded } from "./event-time";
 import { TicketTypeForm, type TicketTypeValues } from "./ticket-type-form";
 import { BrowserQRCodeReader } from "@zxing/browser";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -204,6 +205,8 @@ function Dashboard() {
   const [ownerPassword, setOwnerPassword] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [showPastEvents, setShowPastEvents] = useState(false);
+  const [now, setNow] = useState(Date.now);
   const [ticketEditor, setTicketEditor] = useState<{ eventId: string; typeId?: string } | null>(null);
   const [ticketSaving, setTicketSaving] = useState(false);
   const [pendingActions, setPendingActions] = useState<Record<string, boolean>>({});
@@ -223,6 +226,23 @@ function Dashboard() {
   const [scanning, setScanning] = useState(false);
   const [page, setPage] = useState<Page>("overview");
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (!user || page !== "events") return;
+    const refreshTime = () => setNow(Date.now());
+    refreshTime();
+    const timer = window.setInterval(refreshTime, 1000);
+    window.addEventListener("focus", refreshTime);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshTime);
+    };
+  }, [user?.id, page]);
+
+  const pastEventCount = events.filter((event) => hasEventEnded(event, now)).length;
+  const visibleEvents = events.filter(
+    (event) => user?.role !== "ORGANIZER" || showPastEvents || !hasEventEnded(event, now),
+  );
 
   async function runAction(key: string, action: () => Promise<void>) {
     if (pendingActionKeys.current.has(key)) return;
@@ -688,6 +708,7 @@ function Dashboard() {
     setUser(null);
     setScanning(false);
     setEvents([]);
+    setShowPastEvents(false);
     setSummary(null);
   }
 
@@ -1150,15 +1171,28 @@ function Dashboard() {
             Customers see only events marked Published with a start time in the
             future.
           </p>
-          {events.length === 0 ? (
+          {user.role === "ORGANIZER" && pastEventCount > 0 ? (
+            <button
+              type="button"
+              className="secondary"
+              aria-expanded={showPastEvents}
+              aria-controls="owner-event-list"
+              onClick={() => setShowPastEvents((value) => !value)}
+            >
+              {showPastEvents ? "Hide past events" : `Show past events (${pastEventCount})`}
+            </button>
+          ) : null}
+          {visibleEvents.length === 0 ? (
             <p>
-              {user.role === "ADMIN"
-                ? "No events yet. Register an event owner to get started."
-                : "No events yet. Create your first draft above."}
+              {pastEventCount > 0
+                ? "No upcoming or ongoing events. Select Show past events to view earlier events."
+                : user.role === "ADMIN"
+                  ? "No events yet. Register an event owner to get started."
+                  : "No events yet. Open Create event to create your first draft."}
             </p>
           ) : null}
-          <div className="event-list">
-            {events.map((event) => (
+          <div className="event-list" id="owner-event-list">
+            {visibleEvents.map((event) => (
               <article className="event-card" key={event.id}>
                 {event.coverImageUrl ? (
                   <img
@@ -1179,13 +1213,15 @@ function Dashboard() {
                         : ""}
                     </p>
                     <span
-                      className={`event-status ${event.published && new Date(event.startsAt).getTime() > Date.now() ? "event-status-live" : ""}`}
+                      className={`event-status ${event.published && new Date(event.startsAt).getTime() > now ? "event-status-live" : ""}`}
                     >
-                      {!event.published
-                        ? "Draft · hidden from customers"
-                        : new Date(event.startsAt).getTime() <= Date.now()
-                          ? "Past event · hidden from customers"
-                          : "Published · visible to customers"}
+                      {hasEventEnded(event, now)
+                        ? "Past event · hidden from customers"
+                        : !event.published
+                          ? "Draft · hidden from customers"
+                          : new Date(event.startsAt).getTime() <= now
+                            ? "Ongoing event · hidden from discovery"
+                            : "Published · visible to customers"}
                     </span>
                   </div>
                   {user.role === "ORGANIZER" ? (
