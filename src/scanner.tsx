@@ -93,6 +93,43 @@ type Page =
   | "promotions"
   | "refunds";
 type ScanAction = "CHECK_IN" | "CHECK_OUT";
+type NavigationIcon =
+  | "home"
+  | "events"
+  | "create"
+  | "sales"
+  | "scan"
+  | "promotions"
+  | "refunds"
+  | "owners";
+
+const navigationIconPaths: Record<NavigationIcon, string> = {
+  home: "m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
+  events: "M8 3v4m8-4v4M4 9h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1z",
+  create: "M12 5v14m-7-7h14",
+  sales: "M4 19V5m0 14h16M8 15l3-4 3 2 5-7",
+  scan: "M4 4h5v5H4zm11 0h5v5h-5zM4 15h5v5H4zm8-11v3m0 3v2m3 1h2m-5 5h2m5-5v5",
+  promotions: "m20 13-7 7-10-10V4h6zm-12-5h.01M14 7l3 3",
+  refunds: "M4 7h12a4 4 0 0 1 0 8H8m0 0 4-4m-4 4 4 4",
+  owners: "M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2m6-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8m6-7a4 4 0 0 1 0 8m2 3h4v2",
+};
+
+function NavigationIconView({ name }: { name: NavigationIcon }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="nav-icon"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={navigationIconPaths[name]} />
+    </svg>
+  );
+}
 
 async function request<T>(
   path: string,
@@ -240,6 +277,7 @@ function Dashboard() {
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [page, setPage] = useState<Page>("overview");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     setScanPreview(null);
@@ -736,6 +774,25 @@ function Dashboard() {
     setSummary(null);
   }
 
+  const navigationItems: {
+    id: Page;
+    label: string;
+    icon: NavigationIcon;
+  }[] = [
+    { id: "overview", label: "Home", icon: "home" },
+    { id: "events", label: "Events", icon: "events" },
+    ...(user?.role === "ORGANIZER"
+      ? [{ id: "create" as const, label: "Create event", icon: "create" as const }]
+      : []),
+    { id: "sales", label: "Sales", icon: "sales" },
+    { id: "scan", label: "Scan tickets", icon: "scan" },
+    { id: "promotions", label: "Promotions", icon: "promotions" },
+    { id: "refunds", label: "Refund requests", icon: "refunds" },
+    ...(user?.role === "ADMIN"
+      ? [{ id: "owners" as const, label: "Register event owner", icon: "owners" as const }]
+      : []),
+  ];
+
   if (!user) {
     return (
       <main className="auth-shell">
@@ -802,6 +859,33 @@ function Dashboard() {
           <button className="secondary" onClick={signOut}>
             Sign out
           </button>
+          <button
+            type="button"
+            className="secondary nav-toggle"
+            aria-label={
+              mobileMenuOpen
+                ? "Close dashboard navigation"
+                : "Open dashboard navigation"
+            }
+            aria-expanded={mobileMenuOpen}
+            aria-controls="dashboard-navigation"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            >
+              {mobileMenuOpen ? (
+                <path d="m6 6 12 12M18 6 6 18" />
+              ) : (
+                <path d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
         </div>
       </header>
       {message ? (
@@ -809,23 +893,12 @@ function Dashboard() {
           {message}
         </p>
       ) : null}
-      <nav className="dashboard-nav" aria-label="Dashboard pages">
-        {(
-          [
-            ["overview", "Overview"],
-            ["events", "Events"],
-            ...(user.role === "ORGANIZER"
-              ? ([["create", "Create event"]] as const)
-              : []),
-            ["sales", "Sales"],
-            ["scan", "Scan tickets"],
-            ["promotions", "Promotions"],
-            ["refunds", "Refund requests"],
-            ...(user.role === "ADMIN"
-              ? ([["owners", "Register event owner"]] as const)
-              : []),
-          ] as const
-        ).map(([id, label]) => (
+      <nav
+        id="dashboard-navigation"
+        className={`dashboard-nav${mobileMenuOpen ? " dashboard-nav-open" : ""}`}
+        aria-label="Dashboard pages"
+      >
+        {navigationItems.map(({ id, label, icon }) => (
           <button
             key={id}
             className={page === id ? "nav-active" : "secondary"}
@@ -833,9 +906,11 @@ function Dashboard() {
               setMessage("");
               setTicketEditor(null);
               setPage(id);
+              setMobileMenuOpen(false);
               if (id !== "scan") setScanning(false);
             }}
           >
+            <NavigationIconView name={icon} />
             {label}
           </button>
         ))}

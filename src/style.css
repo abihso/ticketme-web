@@ -15,6 +15,8 @@
 
 body {
   margin: 0;
+  min-width: 320px;
+  overflow-x: hidden;
 }
 
 button,
@@ -120,6 +122,7 @@ label {
 
 .auth-shell,
 .panel {
+  min-width: 0;
   padding: 1.5rem;
   border: 1px solid #e4e6eb;
   border-radius: 1rem;
@@ -166,6 +169,7 @@ label {
   margin: 2.5rem auto;
   display: grid;
   gap: 1.25rem;
+  min-width: 0;
 }
 .topbar,
 .topbar-user,
@@ -178,6 +182,18 @@ label {
 .topbar-user {
   color: #606879;
 }
+.nav-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem;
+}
+.nav-toggle svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
 .secondary {
   color: #27364d;
   background: #edf0f5;
@@ -185,14 +201,27 @@ label {
 .dashboard-nav {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.6rem;
   padding: 0.75rem;
   border: 1px solid #e4e6eb;
   border-radius: 0.9rem;
   background: white;
 }
+.dashboard-nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 44px;
+}
 .dashboard-nav .nav-active {
   background: #27364d;
+}
+.nav-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
 }
 .stats {
   display: grid;
@@ -246,9 +275,11 @@ label {
   gap: 0.75rem;
 }
 .event-card {
+  min-width: 0;
   padding: 1rem;
   border: 1px solid #e8e9ee;
   border-radius: 0.8rem;
+  overflow-wrap: anywhere;
 }
 .event-card h3 {
   margin: 0;
@@ -291,11 +322,13 @@ label {
   gap: 1rem;
   margin: 1rem 0 1.5rem;
   padding: 1rem;
+  overflow-x: auto;
   border: 1px solid #e8e9ee;
   border-radius: 0.8rem;
   background: #fbfbfc;
 }
 .sales-bar {
+  flex: 0 0 auto;
   min-width: 3.5rem;
   display: grid;
   justify-items: center;
@@ -395,10 +428,13 @@ label {
   background: #e8f5ed;
 }
 .table-wrap {
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 table {
   width: 100%;
+  min-width: 38rem;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.9rem;
@@ -423,6 +459,7 @@ td small {
   .dashboard {
     width: min(100% - 1rem, 78rem);
     margin: 1rem auto;
+    gap: 0.85rem;
   }
   .auth-shell,
   .panel {
@@ -435,19 +472,37 @@ td small {
     grid-template-columns: repeat(2, 1fr);
   }
   .topbar {
-    align-items: flex-start;
+    align-items: center;
   }
   .topbar-user {
-    flex-direction: column;
-    align-items: flex-end;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .topbar h1 {
+    font-size: clamp(1.45rem, 6vw, 2rem);
+  }
+  .nav-toggle {
+    display: inline-flex;
   }
   .dashboard-nav {
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    display: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    padding: 0.65rem;
+  }
+  .dashboard-nav.dashboard-nav-open {
+    display: grid;
   }
   .dashboard-nav button {
-    flex: 0 0 auto;
-    min-height: 44px;
+    justify-content: flex-start;
+    min-width: 0;
+    padding: 0.7rem;
+    text-align: left;
+  }
+  .dashboard-nav .nav-icon {
+    width: 1.05rem;
+    height: 1.05rem;
   }
   .form-row {
     grid-template-columns: 1fr;
@@ -459,5 +514,70 @@ td small {
   th,
   td {
     padding: 0.6rem;
+  }
+  .event-actions button {
+    flex: 1 1 auto;
+  }
+  .inventory-item {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard {
+    width: calc(100% - 1rem);
+    margin: 0.5rem auto;
+  }
+  .topbar {
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  .topbar-user {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .topbar-user span {
+    max-width: 7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar-user > .secondary:not(.nav-toggle) {
+    padding: 0.65rem 0.75rem;
+  }
+  .dashboard-nav {
+    grid-template-columns: 1fr;
+  }
+  .stats {
+    gap: 0.55rem;
+  }
+  .stats article {
+    min-width: 0;
+    padding: 0.8rem;
+  }
+  .stats strong {
+    font-size: 1.4rem;
+    overflow-wrap: anywhere;
+  }
+  .section-heading {
+    gap: 0.65rem;
+  }
+  .sales-chart {
+    gap: 0.5rem;
+    padding: 0.65rem;
+  }
+  .sales-bar {
+    min-width: 3rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .stats {
+    grid-template-columns: 1fr;
+  }
+  .topbar-user span {
+    display: none;
   }
 }
