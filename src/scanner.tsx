@@ -906,6 +906,14 @@ function Dashboard() {
         className={`dashboard-nav${mobileMenuOpen ? " dashboard-nav-open" : ""}`}
         aria-label="Dashboard pages"
       >
+        <div className="sidebar-brand">
+          <span className="sidebar-brand-mark" aria-hidden="true">A</span>
+          <span>
+            <strong>ALTBIT</strong>
+            <small>EVENT CONTROL</small>
+          </span>
+        </div>
+        <span className="sidebar-section-label">WORKSPACE</span>
         {navigationItems.map(({ id, label, icon }) => (
           <button
             key={id}
@@ -922,6 +930,15 @@ function Dashboard() {
             {label}
           </button>
         ))}
+        <div className="sidebar-account">
+          <span className="sidebar-avatar" aria-hidden="true">
+            {user.name.trim().charAt(0).toUpperCase()}
+          </span>
+          <span className="sidebar-account-copy">
+            <strong>{user.name}</strong>
+            <small>{user.role === "ADMIN" ? "Administrator" : "Organizer"}</small>
+          </span>
+        </div>
       </nav>
       {page === "overview" ? (
         <section className="stats">
