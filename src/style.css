@@ -199,6 +199,7 @@ label {
   background: #edf0f5;
 }
 .dashboard-nav {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -217,6 +218,9 @@ label {
 }
 .dashboard-nav .nav-active {
   background: #27364d;
+}
+.dashboard-nav-backdrop {
+  display: none;
 }
 .nav-icon {
   width: 1.15rem;
@@ -486,13 +490,42 @@ td small {
     display: inline-flex;
   }
   .dashboard-nav {
-    display: none;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    position: fixed;
+    z-index: 20;
+    inset: 0 auto 0 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
     gap: 0.5rem;
-    padding: 0.65rem;
+    width: 50vw;
+    height: 100vh;
+    height: 100dvh;
+    padding: calc(1rem + env(safe-area-inset-top, 0px)) 0.65rem
+      calc(1rem + env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    border: 0;
+    border-right: 1px solid #e4e6eb;
+    border-radius: 0;
+    box-shadow: 0.75rem 0 2rem #17203324;
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition: transform 180ms ease, visibility 180ms ease;
   }
   .dashboard-nav.dashboard-nav-open {
-    display: grid;
+    transform: translateX(0);
+    visibility: visible;
+  }
+  .dashboard-nav-backdrop {
+    position: fixed;
+    z-index: 19;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border-radius: 0;
+    background: #10172580;
+    cursor: default;
   }
   .dashboard-nav button {
     justify-content: flex-start;
@@ -579,5 +612,11 @@ td small {
   }
   .topbar-user span {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-nav {
+    transition: none;
   }
 }

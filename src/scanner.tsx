@@ -893,6 +893,14 @@ function Dashboard() {
           {message}
         </p>
       ) : null}
+      {mobileMenuOpen ? (
+        <button
+          type="button"
+          className="dashboard-nav-backdrop"
+          aria-label="Close dashboard navigation"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      ) : null}
       <nav
         id="dashboard-navigation"
         className={`dashboard-nav${mobileMenuOpen ? " dashboard-nav-open" : ""}`}
