@@ -42,7 +42,7 @@ export default function GuestTicket() {
       });
       const body = await response.json() as GuestPass & { error?: string };
       if (!response.ok) throw new Error(body.error ?? "Ticket unavailable. Ask the booking owner for the latest link.");
-      if (!body.checkedInAt && !body.qrSvg) throw new Error("Could not display your QR code. Please refresh your ticket.");
+      if (!body.qrSvg) throw new Error("Could not display your QR code. Please refresh your ticket.");
       if (!request.signal.aborted) setTicket(body);
     } catch (reason) {
       if (!request.signal.aborted) setError(reason instanceof TypeError
@@ -81,17 +81,17 @@ export default function GuestTicket() {
       <p className="guest-ticket-brand">ALTBIT · GUEST PASS</p>
       <h1 id="guest-ticket-title">Your guest ticket</h1>
       <p className="guest-ticket-status" role="status">{loading ? "Loading your ticket…" : error ? "Ticket unavailable"
-        : ticket?.checkedInAt ? ticket.checkedOutAt ? "Ticket used · checked out" : "Ticket used · checked in" : "Ready for entry"}</p>
+        : ticket?.checkedInAt ? ticket.checkedOutAt ? "Checked out · Ready for entry" : "Checked in · Check out before another entry" : "Ready for entry"}</p>
       {error ? <p className="guest-ticket-error" role="alert">{error}</p> : null}
       {ticket ? <>
         <h2>{ticket.event}</h2>
         <p className="guest-ticket-muted">{ticket.venue} · {new Date(ticket.startsAt).toLocaleString()}</p>
         <h2>{ticket.guestName}</h2>
         <p>{ticket.ticketType} · Table {ticket.tableNumber} · Seat {ticket.seatNumber}</p>
-        {!ticket.checkedInAt && ticket.qrSvg ? <>
+        {ticket.qrSvg ? <>
           <img className="guest-ticket-qr" src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(ticket.qrSvg)}`} alt="Your individual entry QR code" width={260} height={260} />
-          <p>Show this QR code to staff at entry. You can arrive separately from your group.</p>
-          <p className="guest-ticket-muted">This ticket admits one guest once. Keep it private.</p>
+          <p>Show this QR code to staff at entry and exit. You can arrive separately from your group.</p>
+          <p className="guest-ticket-muted">This ticket is for the original attendee only. Check out before re-entering. Do not share it after use. Keep it private.</p>
           <details><summary>Show entry code</summary><p className="guest-ticket-code">{token}</p></details>
         </> : null}
       </> : null}

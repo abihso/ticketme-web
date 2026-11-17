@@ -4,6 +4,18 @@ import { TicketTypeForm, type TicketTypeValues } from "./ticket-type-form";
 import { BrowserQRCodeReader } from "@zxing/browser";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+type ScanPreview = {
+  token: string;
+  action: "CHECK_IN" | "CHECK_OUT";
+  event: string;
+  ticketType: string;
+  attendeeName: string | null;
+  hasAttended: boolean;
+  status: "NOT_CHECKED_IN" | "CHECKED_IN" | "CHECKED_OUT";
+  tableNumber: number | null;
+  seatNumber: number | null;
+};
+
 const API_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 type AdminUser = { id: string; name: string; email: string; role: string };
 type EventItem = {
@@ -220,12 +232,20 @@ function Dashboard() {
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([]);
   const [ticketToken, setTicketToken] = useState("");
+  const [scanPreview, setScanPreview] = useState<ScanPreview | null>(null);
+  const [scanAttendeeName, setScanAttendeeName] = useState("");
+  const [nameVerified, setNameVerified] = useState(false);
   const [scanAction, setScanAction] = useState<ScanAction>("CHECK_IN");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [page, setPage] = useState<Page>("overview");
   const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    setScanPreview(null);
+    setScanAttendeeName("");
+    setNameVerified(false);
+  }, [ticketToken, scanAction, page, user?.id]);
 
   useEffect(() => {
     if (!user || page !== "events") return;
@@ -675,29 +695,33 @@ function Dashboard() {
     }
   }
 
-  async function checkIn(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage("Validating ticket…");
+  async function previewTicket() {
+    setScanning(false);
+    setScanPreview(null);
+    setNameVerified(false);
+    const result = await request<Omit<ScanPreview, "token" | "action">>("/api/admin/check-in/preview", token, {
+      method: "POST", body: JSON.stringify({ token: ticketToken.trim() }),
+    });
+    setScanPreview({ ...result, token: ticketToken.trim(), action: scanAction });
+    setScanAttendeeName(result.attendeeName ?? "");
+  }
+
+  async function confirmTicketScan() {
+    if (!scanPreview || !nameVerified || !scanAttendeeName.trim()) return;
     try {
-      const result = await request<{
-        event: string;
-        ticketType: string;
-        tableNumber: number | null;
-        guestName: string | null;
-        status: string;
-      }>("/api/admin/check-in", token, {
+      const result = await request<{ event: string; attendeeName: string; status: string }>("/api/admin/check-in", token, {
         method: "POST",
-        body: JSON.stringify({ token: ticketToken, action: scanAction }),
+        body: JSON.stringify({
+          token: scanPreview.token, action: scanPreview.action,
+          attendeeName: scanAttendeeName, nameVerified,
+        }),
       });
-      setMessage(
-        `${result.status === "CHECKED_IN" ? "Checked in" : "Checked out"} · ${result.event} · ${result.ticketType}${result.tableNumber ? ` · Table ${result.tableNumber} · ${result.guestName}` : ""}`,
-      );
+      setMessage(`${result.status === "CHECKED_IN" ? "Checked in" : "Checked out"} · ${result.attendeeName} · ${result.event}`);
       setTicketToken("");
       await refresh(token);
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Ticket validation failed",
-      );
+    } finally {
+      setScanPreview(null);
+      setNameVerified(false);
     }
   }
 
@@ -1104,7 +1128,7 @@ function Dashboard() {
           <h2>Scan tickets</h2>
           <p>
             Choose whether the attendee is entering or leaving, then scan the
-            ticket.
+            ticket and verify the attendee’s name before confirming.
           </p>
           <div className="form-row">
             <button
@@ -1132,28 +1156,70 @@ function Dashboard() {
           <button
             className="secondary"
             type="button"
-            onClick={() => setScanning((active) => !active)}
+            disabled={pendingActions["check-in"]}
+            onClick={() => { setScanPreview(null); setNameVerified(false); setScanning((active) => !active); }}
           >
             {scanning ? "Stop scanning" : "Tap to scan"}
           </button>
           <form onSubmit={(event) => {
             event.preventDefault();
-            void runAction("check-in", () => checkIn(event));
+            void runAction("check-in", previewTicket);
           }}>
             <label>
               Ticket token
               <input
                 value={ticketToken}
                 onChange={(event) => setTicketToken(event.target.value)}
+                disabled={pendingActions["check-in"]}
                 required
               />
             </label>
             <button disabled={!ticketToken || pendingActions["check-in"]} aria-busy={Boolean(pendingActions["check-in"])}>
-              {pendingActions["check-in"] ? "Validating…" : scanAction === "CHECK_IN"
-                ? "Validate and check in"
-                : "Validate and check out"}
+              {pendingActions["check-in"] ? "Reading ticket…" : "Preview ticket and verify name"}
             </button>
           </form>
+          {scanPreview ? (
+            <div className="event-card" aria-label="Verify attendee">
+              <h3>{scanPreview.event}</h3>
+              <p>{scanPreview.ticketType}{scanPreview.tableNumber ? ` · Table ${scanPreview.tableNumber} · Seat ${scanPreview.seatNumber}` : ""}</p>
+              <p>Current status: {scanPreview.status === "CHECKED_IN" ? "Checked in" : scanPreview.status === "CHECKED_OUT" ? "Checked out" : "Not checked in"}</p>
+              {scanPreview.attendeeName ? <h3>Attendee: {scanPreview.attendeeName}</h3> : (
+                <label>
+                  {scanPreview.hasAttended
+                    ? "No original attendee name was saved. Verify the original attendee before recording their name."
+                    : "Record this attendee’s full name. It will be fixed for all later visits."}
+                  <input
+                    aria-label="Attendee full name"
+                    value={scanAttendeeName}
+                    maxLength={100}
+                    disabled={pendingActions["check-in"]}
+                    onChange={(event) => { setScanAttendeeName(event.target.value); setNameVerified(false); }}
+                  />
+                </label>
+              )}
+              <label className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={nameVerified}
+                  disabled={pendingActions["check-in"] || !scanAttendeeName.trim()}
+                  onChange={(event) => setNameVerified(event.target.checked)}
+                />
+                I have checked that this person matches {scanAttendeeName.trim() || "the attendee’s name"}.
+              </label>
+              <p className="hint">Do not confirm if the person does not match. A QR code or knowing a name alone is not proof of identity.</p>
+              <button
+                type="button"
+                disabled={pendingActions["check-in"] || !nameVerified || !scanAttendeeName.trim() ||
+                  (scanPreview.action === "CHECK_IN" ? scanPreview.status === "CHECKED_IN" : scanPreview.status !== "CHECKED_IN")}
+                onClick={() => void runAction("check-in", confirmTicketScan)}
+              >
+                {pendingActions["check-in"] ? "Saving…" : scanPreview.action === "CHECK_IN" ? "Confirm check-in" : "Confirm check-out"}
+              </button>
+              {(scanPreview.action === "CHECK_IN" ? scanPreview.status === "CHECKED_IN" : scanPreview.status !== "CHECKED_IN") ? (
+                <p>This ticket is already {scanPreview.status === "CHECKED_IN" ? "inside" : "outside"}. Choose the correct scan action.</p>
+              ) : null}
+            </div>
+          ) : null}
         </section>
       ) : null}
       {page === "events" ? (
